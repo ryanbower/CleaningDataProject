@@ -39,11 +39,13 @@ x_test <- read.table("./UCI Har Dataset/test/X_test.txt")
 
 
 # Before we merge, let's take a side-trip to finish task 4:
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #   4. Appropriately labels the data set with descriptive variable names. 
 # first, read the features:
 features <- read.table("./UCI Har Dataset/features.txt")
-# use regex to replace the () in the feature names...
-#features$V2 <- gsub('(\\d\\d)','0\\1', df$Assay)
+
+# now iterate, plugging them in as column names.
 for (iter_features in 1:length(features$V2)) {
   colnames(x_test)[iter_features] <- toString(features$V2[iter_features])
   colnames(x_train)[iter_features] <- toString(features$V2[iter_features])
@@ -73,6 +75,7 @@ x_full <- rbind(x_train, x_test)
 #    thereafter that includes "mean(" or "std("
 full_filtered <- cbind(x_full[,1:2], x_full[,grep("*-mean\\(|-std\\(*", colnames(x_full))])
 
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #   3. Uses descriptive activity names to name the activities in the data set
 # append names to activities from the dataset....
@@ -87,29 +90,29 @@ table(full_filtered$activity)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #   5. Creates a second, independent tidy data set with the average of each 
 #       variable for each activity and each subject.
-length(full_filtered)
-dplyr::glimpse(full_filtered)
+
+# first, set activity and subject as factors.
 full_filtered$activity <- as.factor(full_filtered$activity)
 full_filtered$subject <- as.factor(full_filtered$subject)
 
+# now load the reshape package and melt the dataset into a new format:
 library(reshape)
 ff.melt <- melt(full_filtered, id.var = c("subject", "activity"))
 ff.melt<-as.numeric(ff.melt$value)
-dplyr::glimpse(ff.melt)
-colnames(subj_stdevs)[1]
+
+# now cast the dataset into a single summary for st-dev and mean for each
+#  subject-activity pair:
 subj_means <- cast(ff.melt, subject+activity~variable, mean)
 subj_stdevs <- cast(ff.melt,subject+activity~variable, sd)
-dplyr::glimpse(subj_means)
-dplyr::glimpse(subj_stdevs)
 
+# now add the "av_" and "sd_" prefixes onto our new variable names:
 for (iterator in 3:length(subj_stdevs)) {
   colnames(subj_means)[iterator] <- paste("av_", colnames(subj_stdevs)[iterator], sep="")
   colnames(subj_stdevs)[iterator] <- paste("sd_", colnames(subj_stdevs)[iterator], sep="")
 }
 
+# finally, merge the datsets together to get one set with means and st deviations
 final_set <- merge(subj_means, subj_stdevs)
-dplyr::glimpse(final_set)
-
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Finally, write the output:
